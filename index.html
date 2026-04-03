@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Loan Audit Engine</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; background-color: #f0f2f5; }
@@ -12,10 +13,14 @@
 <body>
     <div style="text-align:center; margin-bottom:20px;">
         <h1>Loan Audit Engine</h1>
-        <p>Live Amortization Audit Schedule</p>
+        <p>Interactive Amortization Schedule</p>
     </div>
     <div class="iframe-container">
-        <iframe src="https://docs.google.com/spreadsheets/d/1ubyK-6q1uMw32gkvp7DexiBjTRq536I9m2ErDsn5xcY/preview"></iframe>
+        <iframe 
+            src="https://docs.google.com/spreadsheets/d/1ubyK-6q1uMw32gkvp7DexiBjTRq536I9m2ErDsn5xcY/edit?usp=sharing&rm=minimal"
+            allow="autoplay; encrypted-media; picture-in-picture"
+            sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-modals">
+        </iframe>
     </div>
 </body>
 </html>
