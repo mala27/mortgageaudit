@@ -6,21 +6,20 @@
     <title>Loan Audit Engine</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; background-color: #f0f2f5; }
-        .iframe-container { width: 100%; max-width: 1250px; height: 85vh; border: 1px solid #ccc; border-radius: 12px; overflow: hidden; background: white; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .iframe-container { width: 100%; max-width: 1250px; height: 600px; border: 1px solid #ccc; border-radius: 12px; overflow: hidden; background: white; box-shadow: 0 10px 25px rgba(0,0,0,0.1); margin-bottom: 20px; }
         iframe { width: 100%; height: 100%; border: none; }
     </style>
 </head>
 <body>
     <div style="text-align:center; margin-bottom:20px;">
         <h1>Loan Audit Engine</h1>
-        <p>Interactive Amortization Schedule</p>
+        <p>1. Enter Details Below &nbsp; | &nbsp; 2. View Audit Results Bottom</p>
     </div>
     <div class="iframe-container">
-        <iframe 
-            src="https://docs.google.com/spreadsheets/d/1ubyK-6q1uMw32gkvp7DexiBjTRq536I9m2ErDsn5xcY/edit?usp=sharing&rm=minimal"
-            allow="autoplay; encrypted-media; picture-in-picture"
-            sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-modals">
-        </iframe>
+        <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSeO94xCSPkr2ruPNaVjMszdQWwJjyJaKFacmphcOaAJqViW_Q/viewform?embedded=true">Loading Form…</iframe>
+    </div>
+    <div class="iframe-container" style="height: 800px;">
+        <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vTf9A6xOidrT6-sT2uW2mRE8xXJvE4eXo-UqH_Z_e_Qj1X0VjH8P_o-F9I-J0Y-9G0W6Q1u-W8Y1E_Y/pubhtml?widget=true&amp;headers=false">Loading Results…</iframe>
     </div>
 </body>
 </html>
