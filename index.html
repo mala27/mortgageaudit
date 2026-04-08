@@ -1,26 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Loan Audit Portal</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f4f4f9; text-align: center; }
         .iframe-container { border: 1px solid #ccc; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow: hidden; }
         iframe { width: 100%; border: none; }
+        /* constrain maximum width for nicer layout on large screens */
+        .wrap { max-width: 1100px; margin: 0 auto; }
     </style>
 </head>
 <body>
-    <h1>Loan Audit Engine</h1>
-    <p>1. Enter Details Below &nbsp; | &nbsp; 2. View Audit Results Bottom</p>
-    <div class="iframe-container">
-        <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSdfvN1kYODMM47bNfFZ5QyH1HhR5Wb7TvU4idgJfA9SBeRbIg/viewform?embedded=true" height="600"></iframe>
+    <div class="wrap">
+        <h1>Loan Audit Engine</h1>
+        <p>1. Enter Details Below &nbsp; | &nbsp; 2. View Audit Results Bottom</p>
+
+        <div class="iframe-container">
+            <!-- Google Form (unchanged) -->
+            <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSdfvN1kYODMM47bNfFZ5QyH1HhR5Wb7TvU4idgJfA9SBeRbIg/viewform?embedded=true" height="600"></iframe>
+        </div>
+
+        <div class="iframe-container" style="height: 800px;">
+            <!-- Replace SPREADSHEET_ID and SHEET_GID with your values.
+                 This uses the "htmlembed" path which shows the live sheet view (better than pubhtml snapshot). -->
+            <iframe id="sheetFrame" src="https://docs.google.com/spreadsheets/d/<<2PACX-1vT4Mkqu67AQkuJfITPkZIrDdtk08egePEHiO6Pa0r1spHxGwupBKyHc7eTxJigsIp4H34oafFezYTLG>>/htmlembed?gid=1246389384" height="800"></iframe>
+        </div>
     </div>
-    <div class="iframe-container" style="height: 800px;">
-        <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vT4Mkqu67AQkuJfITPkZIrDdtk08egePEHiO6Pa0r1spHxGwupBKyHc7eTxJigsIp4H34oafFezYTLG/pubhtml?widget=true&amp;headers=false" height="800"></iframe>
-    </div>
-    <script>console.log("Portal Active");</script>
+
+    <script>
+        console.log("Portal Active");
+
+        // Auto-refresh the sheet iframe periodically to reduce caching/display lag.
+        // Interval in milliseconds (e.g., 15000 = 15s). Adjust as needed.
+        (function autoRefreshSheet(intervalMs) {
+            var frame = document.getElementById('sheetFrame');
+            if (!frame) return;
+
+            // Refresh function appends a cache-busting query param, preserving existing query string.
+            function refresh() {
+                try {
+                    var base = frame.getAttribute('data-base-src');
+                    if (!base) {
+                        // store the original src (without cache param) so we don't accumulate params
+                        base = frame.src.split('?')[0];
+                        frame.setAttribute('data-base-src', base);
+                    }
+                    var ts = Date.now();
+                    // Use a param name unlikely to collide: _ts
+                    frame.src = base + '?_ts=' + ts;
+                } catch (e) {
+                    console.error('Error refreshing sheet iframe', e);
+                }
+            }
+
+            // First refresh after a short delay so the initial load completes for the user
+            setTimeout(refresh, 3000);
+
+            // Periodic refresh
+            setInterval(refresh, intervalMs);
+        })(15000);
+    </script>
 </body>
 </html>
-
 
