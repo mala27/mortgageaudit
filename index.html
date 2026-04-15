@@ -63,7 +63,7 @@
             const months = parseFloat(document.getElementById('loanTermMonth').value);
 
             const monthlyRate = annualRate / 12;
-            const numberOfPayments = years * 12;
+            const numberOfPayments = (years * 12) + (parseInt(document.getElementById('loanTermMonth').value) || 0);
             const monthlyPayment = (principal * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -numberOfPayments));
 
             let balance = principal;
