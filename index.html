@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mortgage Audit Calculator - April 7 Version</title>
+    <title>Mortgage Audit Calculator - Legal Grade</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; background-color: #f0f2f5; }
-        .container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 800px; margin: auto; }
-        .input-row { display: flex; gap: 20px; margin-bottom: 20px; }
-        .input-group { flex: 1; display: flex; flex-direction: column; }
-        input { padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px; }
-        button { background-color: #007bff; color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        .container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 900px; margin: auto; }
+        .input-row { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px; }
+        .input-group { flex: 1; min-width: 180px; display: flex; flex-direction: column; }
+        input, select { padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px; }
+        button { background-color: #007bff; color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; width: 100%; margin-top: 10px; }
         button:hover { background-color: #0056b3; }
         table { width: 100%; border-collapse: collapse; margin-top: 30px; background: white; }
         th, td { border: 1px solid #dee2e6; padding: 12px; text-align: center; }
@@ -21,24 +21,44 @@
 <body>
     <div class="container">
         <h2>Mortgage Audit Calculator</h2>
+        
         <div class="input-row">
             <div class="input-group">
-                <label>Loan Amount</label>
-                <input type="number" id="loanAmount" placeholder="e.g. 250000">
+                <label>Loan Amount (£)</label>
+                <input type="number" id="loanAmount" placeholder="e.g. 150499">
+            </div>
+            <div class="input-group">
+                <label>Opening Arrears (£)</label>
+                <input type="number" id="openingArrears" value="0">
             </div>
             <div class="input-group">
                 <label>Annual Interest (%)</label>
-                <input type="number" id="interestRate" step="0.01" placeholder="e.g. 4.5">
-            </div>
-            <div class="input-group">
-                <label>Term (Years)</label>
-                <input type="number" id="loanTerm" placeholder="e.g. 25">
+                <input type="number" id="interestRate" step="0.01" placeholder="e.g. 3.81">
             </div>
         </div>
-        <div class="input-group">
-                <label>Term (Months)</label>
-                <input type="number" id="loanTermMonth" placeholder="e.g. 6">
+
+        <div class="input-row">
+            <div class="input-group">
+                <label>Term (Years)</label>
+                <input type="number" id="loanTerm" placeholder="e.g. 13">
             </div>
+            <div class="input-group">
+                <label>Term (Months)</label>
+                <input type="number" id="loanTermMonth" placeholder="e.g. 0">
+            </div>
+            <div class="input-group">
+                <label>Start Date</label>
+                <input type="date" id="startDate" value="2024-01-01">
+            </div>
+            <div class="input-group">
+                <label>Interest Method</label>
+                <select id="interestMethod">
+                    <option value="monthly">Monthly (Standard)</option>
+                    <option value="daily">Daily (Actual/365)</option>
+                </select>
+            </div>
+        </div>
+
         <button onclick="runMortgageAudit()">Generate Audit Schedule</button>
 
         <table id="auditTable">
@@ -57,21 +77,42 @@
 
     <script>
         function runMortgageAudit() {
-            const principal = parseFloat(document.getElementById('loanAmount').value);
-            const annualRate = parseFloat(document.getElementById('interestRate').value) / 100;
-            const years = parseFloat(document.getElementById('loanTerm').value);
-            const months = parseFloat(document.getElementById('loanTermMonth').value);
+            // Collect Inputs
+            const principal = parseFloat(document.getElementById('loanAmount').value) || 0;
+            const arrears = parseFloat(document.getElementById('openingArrears').value) || 0;
+            const annualRate = (parseFloat(document.getElementById('interestRate').value) || 0) / 100;
+            const years = parseInt(document.getElementById('loanTerm').value) || 0;
+            const months = parseInt(document.getElementById('loanTermMonth').value) || 0;
+            const method = document.getElementById('interestMethod').value;
+            const startVal = new Date(document.getElementById('startDate').value);
 
+            // Calculation Constants
+            const numberOfPayments = (years * 12) + months;
             const monthlyRate = annualRate / 12;
-            const numberOfPayments = (years * 12) + (parseInt(document.getElementById('loanTermMonth').value) || 0);
-            const monthlyPayment = (principal * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -numberOfPayments));
+            
+            // Initial Balance includes any Arrears
+            let balance = principal + arrears;
+            
+            // Calculate standard monthly payment based on the total starting balance
+            const monthlyPayment = (balance * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -numberOfPayments));
 
-            let balance = principal;
             const tbody = document.querySelector('#auditTable tbody');
             tbody.innerHTML = '';
 
             for (let i = 1; i <= numberOfPayments; i++) {
-                const interestM = balance * monthlyRate;
+                // Determine exact days in the current period's month (Leap year aware)
+                // We calculate the date offset by (i-1) months from the start date
+                const currentDate = new Date(startVal.getFullYear(), startVal.getMonth() + (i - 1), 1);
+                // The "0" as the third argument gets the last day of the desired month
+                const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+
+                // Logic for Daily vs Monthly Interest
+                // Daily: Balance * (Rate/365) * Actual Days
+                // Monthly: Balance * (Rate/12)
+                let interestM = (method === 'daily') 
+                    ? (balance * (annualRate / 365) * daysInMonth) 
+                    : (balance * (annualRate / 12));
+
                 const principalM = monthlyPayment - interestM;
                 balance -= principalM;
 
@@ -88,4 +129,3 @@
     </script>
 </body>
 </html>
-
