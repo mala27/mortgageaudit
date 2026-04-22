@@ -3,42 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mortgage Audit Calculator - April 7 Version</title>
+    <title>Mortgage Audit Calculator - Forensic Version</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; background-color: #f0f2f5; }
-        .container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 800px; margin: auto; }
-        .input-row { display: flex; gap: 20px; margin-bottom: 20px; }
-        .input-group { flex: 1; display: flex; flex-direction: column; }
-        input { padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px; }
-        button { background-color: #007bff; color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        .container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 1000px; margin: auto; }
+        .input-row { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px; }
+        .input-group { flex: 1; min-width: 180px; display: flex; flex-direction: column; }
+        input, select { padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px; }
+        button { background-color: #007bff; color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; width: 100%; margin-top: 10px; }
         button:hover { background-color: #0056b3; }
         table { width: 100%; border-collapse: collapse; margin-top: 30px; background: white; }
         th, td { border: 1px solid #dee2e6; padding: 12px; text-align: center; }
         th { background-color: #007bff; color: white; }
         tr:nth-child(even) { background-color: #f8f9fa; }
+        .adj-input { width: 80px; padding: 5px; border: 1px dashed #007bff; text-align: right; }
+        .summary-box { margin-top: 30px; padding: 20px; background: #e9ecef; border-radius: 8px; display: flex; justify-content: space-around; font-weight: bold; }
+        .overcharge { color: #dc3545; }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>Mortgage Audit Calculator</h2>
         <div class="input-row">
+            <div class="input-group"><label>Loan Amount (£)</label><input type="number" id="loanAmount" value="150499"></div>
+            <div class="input-group"><label>Opening Arrears (£)</label><input type="number" id="openingArrears" value="0"></div>
+            <div class="input-group"><label>Annual Interest (%)</label><input type="number" id="interestRate" step="0.01" value="3.81"></div>
+        </div>
+        <div class="input-row">
+            <div class="input-group"><label>Term (Years)</label><input type="number" id="loanTerm" value="13"></div>
+            <div class="input-group"><label>Term (Months)</label><input type="number" id="loanTermMonth" value="0"></div>
+            <div class="input-group"><label>Start Date</label><input type="date" id="startDate" value="2019-02-05"></div>
             <div class="input-group">
-                <label>Loan Amount</label>
-                <input type="number" id="loanAmount" placeholder="e.g. 250000">
-            </div>
-            <div class="input-group">
-                <label>Annual Interest (%)</label>
-                <input type="number" id="interestRate" step="0.01" placeholder="e.g. 4.5">
-            </div>
-            <div class="input-group">
-                <label>Term (Years)</label>
-                <input type="number" id="loanTerm" placeholder="e.g. 25">
+                <label>Interest Method</label>
+                <select id="interestMethod">
+                    <option value="monthly">Monthly (Standard)</option>
+                    <option value="daily">Daily (Actual/365)</option>
+                </select>
             </div>
         </div>
-        <div class="input-group">
-                <label>Term (Months)</label>
-                <input type="number" id="loanTermMonth" placeholder="e.g. 6">
-            </div>
         <button onclick="runMortgageAudit()">Generate Audit Schedule</button>
 
         <table id="auditTable">
@@ -46,44 +48,61 @@
                 <tr>
                     <th>Period</th>
                     <th>Payment</th>
-                    <th>Principal</th>
                     <th>Interest</th>
+                    <th>Principal</th>
+                    <th>Adjustment (+/-)</th>
                     <th>Remaining Balance</th>
                 </tr>
             </thead>
             <tbody></tbody>
         </table>
+
+        <div class="summary-box" id="summary">
+            <div>Total Interest Calculated: <span id="totalInterest">£0.00</span></div>
+            <div class="overcharge">Audit Balance vs Target: <span id="balanceDiff">£0.00</span></div>
+        </div>
     </div>
 
     <script>
         function runMortgageAudit() {
-            const principal = parseFloat(document.getElementById('loanAmount').value);
-            const annualRate = parseFloat(document.getElementById('interestRate').value) / 100;
-            const years = parseFloat(document.getElementById('loanTerm').value);
-            const months = parseFloat(document.getElementById('loanTermMonth').value);
+            const principal = parseFloat(document.getElementById('loanAmount').value) || 0;
+            const arrears = parseFloat(document.getElementById('openingArrears').value) || 0;
+            const annualRate = (parseFloat(document.getElementById('interestRate').value) || 0) / 100;
+            const years = parseInt(document.getElementById('loanTerm').value) || 0;
+            const months = parseInt(document.getElementById('loanTermMonth').value) || 0;
+            const method = document.getElementById('interestMethod').value;
+            const startVal = new Date(document.getElementById('startDate').value);
 
+            const numberOfPayments = (years * 12) + months;
             const monthlyRate = annualRate / 12;
-            const numberOfPayments = (years * 12) + (parseInt(document.getElementById('loanTermMonth').value) || 0);
-            const monthlyPayment = (principal * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -numberOfPayments));
+            let balance = principal + arrears;
+            const payment = (balance * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -numberOfPayments));
 
-            let balance = principal;
             const tbody = document.querySelector('#auditTable tbody');
             tbody.innerHTML = '';
+            let totalInterestCalculated = 0;
 
             for (let i = 1; i <= numberOfPayments; i++) {
-                const interestM = balance * monthlyRate;
-                const principalM = monthlyPayment - interestM;
+                const currentDate = new Date(startVal.getFullYear(), startVal.getMonth() + (i - 1), 1);
+                const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+
+                let interestM = (method === 'daily') ? (balance * (annualRate / 365) * daysInMonth) : (balance * (annualRate / 12));
+                totalInterestCalculated += interestM;
+
+                const principalM = payment - interestM;
                 balance -= principalM;
 
                 const row = `<tr>
                     <td>${i}</td>
-                    <td>£${monthlyPayment.toFixed(2)}</td>
-                    <td>£${principalM.toFixed(2)}</td>
+                    <td>£${payment.toFixed(2)}</td>
                     <td>£${interestM.toFixed(2)}</td>
+                    <td>£${principalM.toFixed(2)}</td>
+                    <td><input type="number" class="adj-input" value="0" onchange="runMortgageAudit()"></td>
                     <td>£${Math.max(0, balance).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                 </tr>`;
                 tbody.insertAdjacentHTML('beforeend', row);
             }
+            document.getElementById('totalInterest').innerText = `£${totalInterestCalculated.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
         }
     </script>
 </body>
